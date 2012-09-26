@@ -87,6 +87,19 @@ module WMB
         DirNode.new(Pathname.new('/'))
       end
 
+      PARSE_KEYS = {}
+
+      def self.parse(hash, parent = self.root)
+        hash.each do |hash_key, attrs|
+          key, path = hash_key.split('/', 2)
+          cls  = PARSE_KEYS[key]
+          node = cls.new(parent.path + path)
+          node.from_hash(attrs)
+        end
+      end
+
+      attr_reader :path
+
       def initialize(path)
         @path = path
       end
@@ -111,6 +124,11 @@ module WMB
 
     class FileNode < Node
       attr_reader :size, :mtime
+
+      def self.key
+        "F"
+      end
+      Node::PARSE_KEYS[self.key] = self
 
       def watch(rules)
         stat = @path.stat
@@ -144,9 +162,23 @@ module WMB
         end
         output
       end
+
+      def to_hash
+        {:size => @size, :mtime => @mtime}
+      end
+
+      def from_hash(hash)
+        @size  = hash[:size]
+        @mtime = hash[:mtime]
+      end
     end
 
     class DirNode < Node
+      def self.key
+        "D"
+      end
+      Node::PARSE_KEYS[self.key] = self
+
       extend Forwardable
       def_delegator :@kids, :[]
       def_delegator :@kids, :keys
@@ -191,7 +223,7 @@ module WMB
           kid = Node.create(subpath)
           if !rule
             kid.watch(nil)
-          elsif rule.is_not_mode?(watch)
+          elsif rule.is_not_mode?(:watch)
             if rule.empty?
               kid = nil
             else
@@ -204,6 +236,18 @@ module WMB
           @kids[key] = kid unless kid.nil?
         end
       end
+
+      def to_hash
+        kids = @kids.map do |path, kid|
+          key = "#{kid.class.key}/#{path.to_s}"
+          [key, kid.to_hash]
+        end
+        Hash[*kids.flatten(1)]
+      end
+
+      def from_hash(hash)
+        @kids = Node.parse(hash)
+      end
     end
 
     def initialize(rules)
@@ -212,12 +256,12 @@ module WMB
     end
 
     def load(file)
-      @db = YAML.load_file(file)
+      @db = Node.parse(YAML.load_file(file))
     end
 
     def save(file)
       fh = Tempfile.open(File.basename(file), File.dirname(file))
-      fh.puts @db.to_yaml
+      fh.puts @db.to_hash.to_yaml
       fh.close
       File.rename(fh.path, file)
     ensure
