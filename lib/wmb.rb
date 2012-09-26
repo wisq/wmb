@@ -259,11 +259,11 @@ module WMB
       @db = Node.root
     end
 
-    def load(file)
+    def load_db(file)
       @db = Node.parse(YAML.load_file(file), Node.root)
     end
 
-    def save(file)
+    def save_db(file)
       fh = Tempfile.open(File.basename(file), File.dirname(file))
       fh.puts @db.to_hash.to_yaml
       fh.close
