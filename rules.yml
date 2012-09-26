@@ -1,0 +1,7 @@
+/tmp/wmb: exclude
+/tmp/wmb/dir1/watch: watch
+/tmp/wmb/dir2/include: include
+/tmp/wmb/dir3/watch: watch
+/tmp/wmb/dir3/watch/subdir/include: include
+/tmp/wmb/dir3/watch/subdir/exclude: exclude
+/tmp/wmb/dir3/watch/subdir/prune_me: watch
