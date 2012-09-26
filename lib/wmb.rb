@@ -1,4 +1,5 @@
 require 'yaml'
+require 'json'
 require 'pathname'
 require 'forwardable'
 require 'tempfile'
@@ -91,7 +92,7 @@ module WMB
 
       def self.parse(hash, parent)
         pairs = hash.map do |hash_key, attrs|
-          key, path = hash_key.split('/', 2)
+          key, path = hash_key.to_s.split('/', 2)
           cls  = PARSE_KEYS[key]
           node = cls.new(parent.path + path)
           node.from_hash(attrs)
@@ -136,7 +137,7 @@ module WMB
       def watch(rules)
         stat = @path.stat
         @size  = stat.size
-        @mtime = stat.mtime
+        @mtime = stat.mtime.to_i
       end
 
       def travel(rules)
@@ -259,13 +260,18 @@ module WMB
       @db = Node.root
     end
 
+    JSON_OPTIONS = {
+      :max_nesting => false,
+      :symbolize_names => true
+    }
+
     def load_db(file)
-      @db = Node.parse(YAML.load_file(file), Node.root)
+      @db = Node.parse(JSON.parse(File.read(file), JSON_OPTIONS), Node.root)
     end
 
     def save_db(file)
       fh = Tempfile.open(File.basename(file), File.dirname(file))
-      fh.puts @db.to_hash.to_yaml
+      fh.puts @db.to_hash.to_json(JSON_OPTIONS)
       fh.close
       File.rename(fh.path, file)
     ensure
