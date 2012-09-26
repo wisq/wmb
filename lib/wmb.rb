@@ -89,13 +89,16 @@ module WMB
 
       PARSE_KEYS = {}
 
-      def self.parse(hash, parent = self.root)
-        hash.each do |hash_key, attrs|
+      def self.parse(hash, parent)
+        pairs = hash.map do |hash_key, attrs|
           key, path = hash_key.split('/', 2)
           cls  = PARSE_KEYS[key]
           node = cls.new(parent.path + path)
           node.from_hash(attrs)
+          [path, node]
         end
+
+        Hash[*pairs.flatten(1)]
       end
 
       attr_reader :path
@@ -239,14 +242,15 @@ module WMB
 
       def to_hash
         kids = @kids.map do |path, kid|
-          key = "#{kid.class.key}/#{path.to_s}"
+          raise "node #{@path} contains pathname" if path.kind_of?(Pathname)
+          key = "#{kid.class.key}/#{path}"
           [key, kid.to_hash]
         end
         Hash[*kids.flatten(1)]
       end
 
       def from_hash(hash)
-        @kids = Node.parse(hash)
+        @kids = Node.parse(hash, self)
       end
     end
 
@@ -256,7 +260,7 @@ module WMB
     end
 
     def load(file)
-      @db = Node.parse(YAML.load_file(file))
+      @db = Node.parse(YAML.load_file(file), Node.root)
     end
 
     def save(file)
