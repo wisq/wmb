@@ -82,6 +82,14 @@ module WMB
       def initialize(path)
         @path = path
       end
+
+      def changes(other)
+        if other.class != self.class
+          ["became a #{other.description(false)}"]
+        else
+          local_changes(other)
+        end
+      end
     end
 
     class NilNode < Node
@@ -94,6 +102,8 @@ module WMB
     end
 
     class FileNode < Node
+      attr_reader :size, :mtime
+
       def watch(rules)
         stat = @path.stat
         @size  = stat.size
@@ -103,12 +113,52 @@ module WMB
       def travel(rules)
         # nothing to do
       end
+
+      def count_recursive
+        1
+      end
+
+      def keys
+        []
+      end
+
+      def description(full = true)
+        path = " #{@path}" if full
+        "file#{path}"
+      end
+
+      def local_changes(other)
+        output = []
+        if @size != other.size
+          output << "size changed: #{@size} -> #{other.size}" if @size != other.size
+        else
+          output << "modified" if @mtime != other.mtime
+        end
+        output
+      end
     end
 
     class DirNode < Node
+      extend Forwardable
+      def_delegator :@kids, :[]
+      def_delegator :@kids, :keys
+
       def initialize(path)
         super(path)
         @kids = {}
+      end
+
+      def description(full = true)
+        path = " #{@path}" if full
+        "directory#{path} with #{count_recursive} children"
+      end
+
+      def count_recursive
+        @kids.values.inject(1) { |sum, kid| sum + kid.count_recursive }
+      end
+
+      def local_changes(other)
+        []
       end
 
       def travel(rules)
@@ -150,6 +200,7 @@ module WMB
 
     def initialize(rules)
       @rules = rules
+      @db = Node.root
     end
 
     def load(file)
@@ -160,7 +211,7 @@ module WMB
       fh = Tempfile.open(File.basename(file), File.dirname(file))
       fh.puts @db.to_yaml
       fh.close
-      fh.rename(file)
+      File.rename(fh.path, file)
     ensure
       fh.close! if fh
     end
@@ -168,9 +219,32 @@ module WMB
     def run
       new_db = Node.root
       new_db.travel(@rules)
-      # prepare a change report here
-      pp new_db
+
+      changes = report(@db, new_db)
+      puts *changes unless changes.empty?
+
       @db = new_db
+    end
+
+    private
+
+    def report(db1, db2)
+      output = []
+      (db1.keys | db2.keys).each do |key|
+        node1 = db1[key]
+        node2 = db2[key]
+
+        if !node1 && node2
+          output << "Added: #{node2.description}"
+        elsif node1 && !node2
+          output << "Deleted: #{node1.description}"
+        else
+          output += node1.changes(node2).map {|out| "Changed: #{node1.description} #{out}"}
+          output += report(node1, node2)
+        end
+      end
+
+      output
     end
   end
 end
