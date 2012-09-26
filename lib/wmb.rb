@@ -44,16 +44,24 @@ module WMB
       @kids[name] = rules
     end
 
-    def watch?
-      @mode == :watch
+    def is_mode?(mode)
+      @mode == mode
     end
 
-    def unwatch?
-      @mode && !watch?
+    def is_not_mode?(mode)
+      @mode && !is_mode?(mode)
     end
 
-    def blocks_watch?
-      unwatch? && @kids.empty?
+    def blocks_mode?(mode)
+      is_not_mode?(mode) && @kids.empty?
+    end
+
+    def shallow_find(&block)
+      if yield(self)
+        [self]
+      else
+        @kids.values.inject([]) {|found, kid| found += kid.shallow_find(&block)}
+      end
     end
 
     # Delete children who have the same mode as their closest ancestor.
@@ -163,9 +171,9 @@ module WMB
 
       def travel(rules)
         rules.each do |path, rule|
-          if !rule.blocks_watch?
+          if !rule.blocks_mode?(:watch)
             kid = Node.create(rule.path)
-            if rule.watch?
+            if rule.is_mode?(:watch)
               kid.watch(rule)
             else
               kid.travel(rule)
@@ -183,7 +191,7 @@ module WMB
           kid = Node.create(subpath)
           if !rule
             kid.watch(nil)
-          elsif rule.unwatch?
+          elsif rule.is_not_mode?(watch)
             if rule.empty?
               kid = nil
             else
@@ -245,6 +253,51 @@ module WMB
       end
 
       output
+    end
+  end
+
+  class Sync
+    def initialize(rules)
+      @rules = rules
+    end
+
+    def file_list
+      traverse(@rules)
+    end
+
+    private
+
+    def traverse(rule)
+      includes = rule.shallow_find {|r| r.is_mode?(:include)}
+
+      files = []
+      includes.each do |rule|
+        files += files_for(rule)
+      end
+      files
+    end
+
+    def files_for(rule)
+      path = rule.path
+      return [] unless path.exist?
+      return [path] if rule.empty?
+
+      files = []
+      path.each_child do |subpath|
+        key     = subpath.basename.to_s
+        subrule = rule[key]
+
+        if !subrule
+          files << subpath
+        elsif subrule.is_not_mode?(:include)
+          files += traverse(subrule) unless subrule.empty?
+        elsif subpath.directory?
+          files += files_for(subrule)
+        else
+          files += subpath
+        end
+      end
+      files
     end
   end
 end
