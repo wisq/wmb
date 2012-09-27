@@ -94,7 +94,7 @@ A backup directory on wmbserver: ```mkdir -vp /backups/wmbclient/upload```
 A crontab on wmbserver:
 
 ```crontab
-0 * * * * $HOME/wmb/bin/cycle /backups/wmbclient \%Y-\%m-\%d.\%H'
+0 * * * * $HOME/wmb/bin/cycle /backups/wmbclient \%Y-\%m-\%d.\%H
 ```
 
 An rsyncd.conf on wmbserver:
