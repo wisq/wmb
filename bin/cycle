@@ -1,0 +1,39 @@
+#!/usr/bin/env ruby
+
+require 'pathname'
+
+abort "Usage: #{$0} <backup path> [format]" unless ARGV.count.between?(1, 2)
+backup_path, format = ARGV
+
+backup_path = Pathname.new(backup_path)
+format ||= "%Y-%m-%d"
+
+current_link = backup_path + "upload" + "current"
+prior_link   = backup_path + "upload" + "prior"
+
+old_stamp = nil
+new_stamp = Time.now.strftime(format)
+new_path  = backup_path + new_stamp
+
+begin
+  old_stamp = current_link.readlink.basename.to_s
+  exit(0) if old_stamp == new_stamp
+rescue Errno::ENOENT
+  warn "Current link does not exist: #{current_link}"
+end
+
+begin
+  current_path = backup_path + old_stamp
+  current_path.rmdir
+  current_link.unlink
+rescue Errno::ENOTEMPTY
+  current_link.rename(prior_link)
+end if old_stamp
+
+begin
+  new_path.mkdir
+rescue Errno::EEXIST
+  warn "Cycled stamps but path exists: #{new_path}"
+end
+
+current_link.make_symlink("../#{new_stamp}")
