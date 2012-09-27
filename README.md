@@ -120,3 +120,15 @@ And that's it!
 Note that I've got the backups on the hour (+3m) and the watches on the half-hour (+3m)  here.  That's just to prevent the two battling for resources at the same time.
 
 The server cycles exactly on the hour, three minutes before the backup, so the timestamp will reflect the current hour.
+
+Caveats
+-------
+
+ - File permissions are not preserved.
+  - Lack of u+rwx permissions can break rsync.
+  - Some environments (e.g. Cygwin) can have some pretty screwed up permissions.
+ - Symlinks and special files are not preserved.
+  - Needs some thought re: how to avoid confusing the watcher / rsync file lister.
+ - Was written in an afternoon.
+  - Needs more testing (underway).
+  - Needs code cleanup and splitting into multiple files.
