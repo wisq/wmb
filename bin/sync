@@ -1,0 +1,40 @@
+#!/usr/bin/env ruby
+
+require 'pathname'
+$LOAD_PATH << Pathname.new(__FILE__).realpath.dirname.dirname + 'lib'
+require 'wmb'
+
+abort "Usage: #{$0} <rules file> <rsync target> [log file]" unless ARGV.count.between?(2, 3)
+rules_file, rsync_target, log_file = ARGV
+
+rsync_base_path =
+  if rsync_target.start_with?('rsync://')
+    require 'uri'
+    URI.parse(rsync_target).path.sub(%r{^/[^/]+/?}, '/')
+  else
+    rsync_target.split(':', 2).last
+  end
+
+rules = WMB::Rules.load_file(rules_file)
+sync  = WMB::Sync.new(rules)
+files = sync.file_list.map(&:to_s)
+
+files_from = Tempfile.open('wmb_files')
+files_from.puts *files
+files_from.close
+
+command  = ["rsync", "-rt"]
+command += ['--log-file', log_file] if log_file
+command += [
+  "--omit-dir-times",
+  "--no-perms", "--no-group", "--chmod=ugo=rwX",
+  "--files-from", files_from.path,
+  "--link-dest", "#{rsync_base_path}prior/",
+  "/", "#{rsync_target}/current/"
+]
+
+File.open(log_file, 'a') do |fh|
+  fh.puts "Executing: #{command.join(' ')}"
+end if log_file
+
+system(*command)
