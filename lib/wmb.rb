@@ -221,6 +221,9 @@ module WMB
 
       def watch(rules)
         @path.each_child do |subpath|
+          stat = subpath.lstat
+          next unless stat.directory? || stat.file?
+
           key  = subpath.basename.to_s
           rule = rules[key] if rules
 
@@ -338,6 +341,9 @@ module WMB
 
       files = []
       path.each_child do |subpath|
+        stat = subpath.lstat
+        next unless stat.directory? || stat.file?
+
         key     = subpath.basename.to_s
         subrule = rule[key]
 
@@ -345,7 +351,7 @@ module WMB
           files << subpath
         elsif subrule.is_not_mode?(:include)
           files += traverse(subrule) unless subrule.empty?
-        elsif subpath.directory?
+        elsif stat.directory?
           files += files_for(subrule)
         else
           files += subpath
