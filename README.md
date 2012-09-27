@@ -94,7 +94,7 @@ A backup directory on wmbserver: ```mkdir -vp /backups/wmbclient/upload```
 A crontab on wmbserver:
 
 ```crontab
-0 * * * * $HOME/wmb/bin/cycle /backups/wmbclient '%Y-%m-%d.%H'
+0 * * * * $HOME/wmb/bin/cycle /backups/wmbclient \%Y-\%m-\%d.\%H'
 ```
 
 An rsyncd.conf on wmbserver:
@@ -120,6 +120,8 @@ And that's it!
 Note that I've got the backups on the hour (+3m) and the watches on the half-hour (+3m)  here.  That's just to prevent the two battling for resources at the same time.
 
 The server cycles exactly on the hour, three minutes before the backup, so the timestamp will reflect the current hour.
+
+Don't forget to escape the percent symbols in the cycle format, since "%" is a special character in a crontab.
 
 Caveats
 -------
