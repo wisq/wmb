@@ -134,3 +134,7 @@ Caveats
  - Was written in an afternoon.
   - Needs more testing (underway).
   - Needs code cleanup and splitting into multiple files.
+ - Having any rules under an "include" rule is a fairly untested code path right now.
+  - Has to generate a list of files for rsync, rather than using recursive.
+  - Might work, might not.
+  - Could perhaps be rewritten to use --exclude.
