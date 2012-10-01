@@ -302,7 +302,7 @@ module WMB
         if !node1 && node2
           output << "Added: #{node2.description}"
         elsif node1 && !node2
-          output << "Deleted: #{node1.description}"
+          output << "Removed: #{node1.description}"
         else
           output += node1.changes(node2).map {|out| "Changed: #{node1.description} #{out}"}
           output += report(node1, node2)
