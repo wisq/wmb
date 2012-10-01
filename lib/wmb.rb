@@ -342,7 +342,7 @@ module WMB
       files = []
       path.each_child do |subpath|
         stat = subpath.lstat
-        next unless stat.directory? || stat.file?
+        next unless stat.directory? || stat.file? || stat.symlink?
 
         key     = subpath.basename.to_s
         subrule = rule[key]

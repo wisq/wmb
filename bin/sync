@@ -23,10 +23,11 @@ files_from = Tempfile.open('wmb_files')
 files_from.puts *files
 files_from.close
 
-command  = ["rsync", "-rt"]
+command  = ["rsync"]
 command += ['--log-file', log_file] if log_file
 command += [
-  "--omit-dir-times",
+  "--recursive", "--links",
+  "--times", "--omit-dir-times",
   "--no-perms", "--no-group", "--chmod=ugo=rwX",
   "--files-from", files_from.path,
   "--link-dest", "#{rsync_base_path}prior/",
