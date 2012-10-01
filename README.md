@@ -129,8 +129,8 @@ Caveats
  - File permissions are not preserved.
   - Lack of u+rwx permissions can break rsync.
   - Some environments (e.g. Cygwin) can have some pretty screwed up permissions.
- - Symlinks and special files are not preserved.
-  - Needs some thought re: how to avoid confusing the watcher / rsync file lister.
+ - Special files are not preserved.
+  - But symlinks should be.
  - Was written in an afternoon.
   - Needs more testing (underway).
   - Needs code cleanup and splitting into multiple files.
