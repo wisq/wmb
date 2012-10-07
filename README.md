@@ -28,6 +28,16 @@ Path rules can be nested arbitrarily deep, so for example, you could define
 
 with the result that ```/a``` and ```/a/b/c``` would be watched, but ```/a/b``` and ```/a/b/c/d``` would be included (and not watched).
 
+To reduce repetition, paths can be specified in pieces using nested hashes.  To nest items below a directory and also define a rule for the directory itself, define a rule for ```.```.
+
+```yaml
+/nested:
+  .: exclude
+  dir1: include
+  dir2: watch
+  dir3: include
+```
+
 bin/watch
 ---------
 
