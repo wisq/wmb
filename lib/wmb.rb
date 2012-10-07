@@ -12,17 +12,7 @@ module WMB
 
     def self.parse(hash)
       root = Rules.new(Pathname.new('/'))
-
-      hash.each do |raw_path, mode|
-        path = Pathname.new(raw_path)
-        rules = root
-        path.each_filename do |part|
-          path  = rules.path + part
-          rules = (rules[part] ||= Rules.new(path))
-        end
-        rules.mode = mode.to_sym
-      end
-
+      root.parse(hash)
       root.prune!
       root
     end
@@ -39,6 +29,30 @@ module WMB
       @path = path
       @kids = {}
     end
+
+    def parse(hash)
+      hash.each do |raw_path, data|
+        if raw_path == '.'
+          self.mode = data.to_sym
+          next
+        end
+
+        path  = Pathname.new(raw_path)
+        rules = self
+
+        path.each_filename do |part|
+          path  = rules.path + part
+          rules = (rules[part] ||= Rules.new(@path + path))
+        end
+
+        if data.kind_of?(Hash)
+          rules.parse(data)
+        else
+          rules.mode = data.to_sym
+        end
+      end
+    end
+
 
     def []=(name, rules)
       raise "Not a Rules object: #{rules.inspect}" unless rules.kind_of?(self.class)
