@@ -11,7 +11,13 @@
 /tmp/wmb/dir4/nested:
   subdir1: include
   subdir2: watch
+  subdir2/*.ext: exclude
+  subdir2/*/file: exclude
 /tmp/wmb/dir4/nested_with_mode:
   .: watch
   subdir1: exclude
   subdir2: include
+/tmp/wmb*glob:
+  .: include
+  exclude: exclude
+  exclude/sub*glob: include

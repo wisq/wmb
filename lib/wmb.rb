@@ -5,6 +5,49 @@ require 'forwardable'
 require 'tempfile'
 
 module WMB
+  class GlobHash
+    def initialize
+      @hash  = {}
+      @match = {}
+    end
+
+    def []=(key, value)
+      return @hash[key] = value unless key =~ /[\?\*]/
+      rx = Regexp.escape(key).gsub('\\*', '.*?').gsub('\\?', '.')
+      @match[/^#{rx}$/] = value
+    end
+
+    def [](key)
+      return @hash[key] if @hash.has_key?(key)
+      @match.each {|rx, v| return v if key =~ rx}
+      nil
+    end
+
+    def has_key?(key)
+      return true if @hash.has_key?(key)
+      @match.each {|rx, v| return true if key =~ rx}
+      false
+    end
+
+    def empty?
+      @hash.empty? && @match.empty?
+    end
+
+    def values
+      @hash.values + @match.values
+    end
+
+    def delete_if(&block)
+      @hash.delete_if(&block)
+      @match.delete_if(&block)
+    end
+
+    def each(&block)
+      @hash.each(&block)
+      @match.each(&block)
+    end
+  end
+
   class Rules
     def self.load_file(file)
       parse(YAML.load_file(file))
@@ -27,7 +70,7 @@ module WMB
 
     def initialize(path)
       @path = path
-      @kids = {}
+      @kids = GlobHash.new
     end
 
     def parse(hash)
@@ -333,7 +376,9 @@ module WMB
     end
 
     def file_list
-      traverse(@rules)
+      require 'pp'
+      pp traverse(@rules)
+      exit(1)
     end
 
     private
@@ -349,8 +394,14 @@ module WMB
     end
 
     def files_for(rule)
-      path = rule.path
-      return [] unless path.exist?
+      files = []
+      Dir.glob(rule.path.to_s) do |path|
+        files += files_for_path(rule, Pathname.new(path))
+      end
+      files
+    end
+
+    def files_for_path(rule, path)
       return [path] if rule.empty?
 
       files = []
