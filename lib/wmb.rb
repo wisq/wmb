@@ -376,9 +376,7 @@ module WMB
     end
 
     def file_list
-      require 'pp'
-      pp traverse(@rules)
-      exit(1)
+      traverse(@rules)
     end
 
     private
