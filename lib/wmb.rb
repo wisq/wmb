@@ -342,11 +342,11 @@ module WMB
     }
 
     def load_db(file)
-      @db = Node.parse(JSON.parse(File.read(file), JSON_OPTIONS), Node.root)
+      @db = Node.parse(JSON.parse(File.read(file, :encoding => 'utf-8'), JSON_OPTIONS), Node.root)
     end
 
     def save_db(file)
-      fh = Tempfile.open(File.basename(file), File.dirname(file))
+      fh = Tempfile.open(File.basename(file), File.dirname(file), :encoding => 'utf-8')
       fh.puts @db.to_hash.to_json(JSON_OPTIONS)
       fh.close
       File.rename(fh.path, file)
