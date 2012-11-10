@@ -4,6 +4,22 @@ require 'pathname'
 require 'forwardable'
 require 'tempfile'
 
+class Pathname
+  # If anyone has any insight as to why Cygwin is
+  # giving me pathnames with double-UTF8-encoded
+  # characters in them, please let me know. - @wisq
+  def each_child_with_cygwin_fix(*args)
+    each_child_without_cygwin_fix(*args) do |entry|
+      yield Pathname.new(entry.to_s.encode('windows-1252').force_encoding('utf-8'))
+    end
+  end
+
+  if RUBY_PLATFORM.include?('cygwin')
+    alias_method :each_child_without_cygwin_fix, :each_child
+    alias_method :each_child, :each_child_with_cygwin_fix
+  end
+end
+
 module WMB
   class GlobHash
     def initialize
